@@ -1,0 +1,78 @@
+======================================================================
+     TREYLER & DORSE CARİ VE FATURA TAKİP SİSTEMİ - KULLANIM KILAVUZU
+======================================================================
+
+Merhaba! Bu sistem, bilgisayar bilginiz ne olursa olsun işlerinizi en basit
+ve en hızlı şekilde halletmeniz için özel olarak tasarlandı.
+
+----------------------------------------------------------------------
+1. PROGRAMI NASIL BAŞLATIRIM?
+----------------------------------------------------------------------
+- Klasördeki "BASLAT.bat" dosyasına çift tıklayın.
+- İnternet tarayıcınız (Chrome veya Edge) otomatik olarak açılacaktır.
+- Açılan siyah pencereyi kapatmayın, simge durumuna küçültebilirsiniz.
+
+----------------------------------------------------------------------
+2. EN KOLAY İŞLEM GİRİŞİ (AKILLI ASİSTAN):
+----------------------------------------------------------------------
+Ekranın en üstünde mor-mavi bir kutu göreceksiniz. Oraya aynen şöyle yazabilirsiniz:
+
+Örnekler:
+  * "Özdemir Nakliyat 150000 fatura"
+  * "Kaya Lojistik 50 bin havale geldi"
+  * "Aksan Dingil 85000 fatura geldi"
+  * "Çeliksan 40 bin ödeme yaptık"
+
+Enter'a veya "Algıla" butonuna bastığınızda sistem faturayı anlar ve yeşil bir
+"✅ Tek Tıkla Onayla ve Kaydet" butonu çıkarır. O butona bastığınız anda işlem
+ilgili firmanın hesabına işlenir ve bakiyesi otomatik güncellenir!
+
+----------------------------------------------------------------------
+3. RENKLİ HIZLI BUTONLARLA İŞLEM YAPMA:
+----------------------------------------------------------------------
+Ana ekranda 4 tane büyük renkli kutu vardır:
+  [🔵 Fatura Kes]       : Müşteriye yeni fatura kestiğinizde (Alacağınız artar)
+  [🟢 Tahsilat Aldık]   : Müşteriden para geldiğinde (Havale / Nakit)
+  [🟠 Fatura Geldi]     : Bize malzeme veya servis faturası geldiğinde
+  [🔴 Ödeme Yaptık]     : Tedarikçiye para gönderdiğinizde
+
+Tıkladığınızda sadece firma adını ve tutarı girip "Kaydet" demeniz yeterlidir.
+İsterseniz dorse tipini (Damper, Lowbed vb.), plakayı ve şasi numarasını da
+seçebilirsiniz.
+
+----------------------------------------------------------------------
+4. KOLAYSOFT FATURA EXCEL'LERİNİ YÜKLEME (TEK TIKLA AKTAR):
+----------------------------------------------------------------------
+KolaySoft portalınızdan indirdiğiniz fatura Excel listesini:
+  - Üstteki sarı "KolaySoft Excel İçe Aktar" butonuna tıklayarak seçin veya
+    sürükleyip bırakın.
+  - "Faturaları Sisteme Aktar" deyin.
+  - Bütün faturalar ve firmalar sisteme otomatik işlenir, tek tek girmekle
+    asla uğraşmazsınız!
+
+----------------------------------------------------------------------
+5. EXCEL'E AKTARMA VE WHATSAPP BİLDİRİMİ:
+----------------------------------------------------------------------
+- Tüm cari listesini Excel olarak almak için sağ üstteki "Listeyi Excel'e Aktar"
+  butonuna basın. Renkli ve toplamlı Excel dosyanız hemen iner.
+- Bir firmanın tüm geçmiş hesap dökümünü görmek için yanındaki "Ekstre" butonuna
+  basın. Buradan da o müşteriye özel Excel dökümü veya yazıcı çıktısı alabilirsiniz.
+- "WhatsApp ile Bildir" butonuna basarsanız, WhatsApp Web'de müşteriye hazır
+  bakiye mesajı açılır. Siz göndere basmadan mesaj KESİNLİKLE gitmez!
+
+----------------------------------------------------------------------
+6. YANLIŞ BİR ŞEY GİRERSEM NE OLUR? (GERİ ALMA):
+----------------------------------------------------------------------
+Hiç korkmayın! Yanlış tutar girdiyseniz veya yanlış işlem yaptıysanız:
+- Müşterinin "Ekstre" butonuna basın veya ana sayfadaki "Son Hareketler"
+  listesinde o işlemin yanındaki kırmızı Çöp Kutusu (Sil) simgesine tıklayın.
+- İşlem anında silinir ve firmanın bakiyesi hatasız eski haline döner!
+
+----------------------------------------------------------------------
+7. YEDEKLEME:
+----------------------------------------------------------------------
+Verileriniz bilgisayarınızda "muhasebe.db" dosyasında güvenle saklanır.
+Dilediğiniz zaman sağ üstteki "Yedek Al" butonuna basarak tüm verilerinizin
+bir kopyasını indirebilirsiniz.
+
+Hayırlı ve bol kazançlı işler dileriz!

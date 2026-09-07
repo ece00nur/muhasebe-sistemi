@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treyler Cari & Fatura Takip Sistemi</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+    }
+    .badge-satis { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-tahsilat { background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-alis { background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-odeme { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    
+    @media print {
+      body * { visibility: hidden; }
+      #ekstreModal, #ekstreModalContent, #ekstreModalContent * { visibility: visible; }
+      #ekstreModal { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ================= ÜST BAŞLIK & MENÜ ================= -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-600 p-2.5 rounded-xl shadow-md flex items-center justify-center">
+          <i data-lucide="truck" class="w-7 h-7 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            TREYLER & DORSE
+            <span class="text-xs bg-blue-500/30 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-400/30">Cari Takip</span>
+          </h1>
+          <p class="text-xs text-slate-400">KolaySoft Uyumlu Akıllı Muhasebe Sistemi</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <!-- KolaySoft Excel Yükle Butonu -->
+        <button onclick="openKolaysoftModal()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold text-sm px-4 py-2 rounded-xl shadow transition flex items-center gap-2">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          KolaySoft Excel İçe Aktar
+        </button>
+
+        <!-- Tüm Cariler Excel İndir -->
+        <a href="/api/export/cariler" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-xl shadow transition flex items-center gap-2">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          Listeyi Excel'e Aktar
+        </a>
+
+        <!-- Yedek Al -->
+        <a href="/api/backup" target="_blank" title="Veritabanının tam yedeğini bilgisayara indirir" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm px-3 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          Yedek Al
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= ANA İÇERİK ALANI ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 flex-1 w-full">
+
+    <!-- ================= 1. AKILLI HIZLI GİRİŞ ÇUBUĞU ================= -->
+    <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl shadow-xl p-5 text-white relative overflow-hidden">
+      <div class="relative z-10">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-400 text-slate-950 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AKILLI ASİSTAN
+            </span>
+            <h2 class="text-lg font-bold">Tek Cümleyle veya Tek Tıkla İşlem Ekle</h2>
+          </div>
+          <span class="text-xs text-blue-200 hidden sm:inline">Yazın, gerisini sistem anlasın!</span>
+        </div>
+
+        <p class="text-xs text-blue-100/90 mb-3">
+          Örnek: <code class="bg-black/25 px-2 py-0.5 rounded text-amber-200 font-mono">Özdemir Nakliyat 150000 fatura damper dorse</code> veya <code class="bg-black/25 px-2 py-0.5 rounded text-emerald-200 font-mono">Kaya Lojistik 50 bin havale geldi</code>
+        </p>
+
+        <!-- Akıllı Input Kutusu -->
+        <div class="flex flex-col sm:flex-row gap-2">
+          <div class="relative flex-1">
+            <input 
+              type="text" 
+              id="smartInput" 
+              placeholder="Firma adını ve tutarı yazın (Örn: A Firması 75000 TL fatura kesildi)..." 
+              class="w-full pl-4 pr-10 py-3.5 rounded-xl bg-white text-slate-900 placeholder-slate-400 font-medium text-base shadow-inner focus:outline-none focus:ring-4 focus:ring-amber-400/50"
+              onkeydown="if(event.key === 'Enter') parseSmartText()"
+            />
+            <button onclick="clearSmartInput()" class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <button 
+            onclick="parseSmartText()" 
+            class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6 py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-base active:scale-95"
+          >
+            <i data-lucide="arrow-right-circle" class="w-5 h-5"></i>
+            Algıla ve Hazırla
+          </button>
+        </div>
+
+        <!-- Akıllı Önizleme & Onay Kartı (Dinamik Açılır) -->
+        <div id="smartPreviewCard" class="hidden mt-4 bg-white text-slate-900 p-4 rounded-xl shadow-2xl border-2 border-amber-400 animate-fade-in">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div id="smartPreviewIcon" class="w-12 h-12 rounded-xl flex items-center justify-center text-white bg-blue-600 font-bold shadow">
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span id="smartPreviewType" class="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">Satış Faturası</span>
+                  <span id="smartCariStatus" class="text-xs text-slate-500 font-medium">Mevcut Müşteri</span>
+                </div>
+                <h3 id="smartPreviewFirm" class="text-lg font-bold text-slate-900 mt-0.5">-</h3>
+                <p id="smartPreviewDesc" class="text-xs text-slate-500">-</p>
+              </div>
+            </div>
+
+            <div class="text-right">
+              <span class="text-xs text-slate-500 font-medium block">İşlem Tutarı</span>
+              <span id="smartPreviewAmount" class="text-2xl font-black text-emerald-600">0,00 ₺</span>
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <button 
+                onclick="confirmSmartSave()" 
+                id="smartSaveBtn"
+                class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-base"
+              >
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                ✅ Tek Tıkla Onayla ve Kaydet
+              </button>
+              <button 
+                onclick="openEditFromSmart()" 
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl transition text-sm"
+              >
+                Düzenle
+              </button>
+              <button 
+                onclick="cancelSmartPreview()" 
+                class="text-slate-400 hover:text-slate-600 p-2"
+              >
+                <i data-lucide="x" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= 2. DÖRT BÜYÜK HIZLI İŞLEM BUTONU ================= -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+      <!-- Fatura Kes (Satış) -->
+      <button onclick="openManualIslemModal('Satis_Faturasi')" class="bg-white hover:bg-blue-50/60 border-2 border-blue-200 hover:border-blue-400 p-4 rounded-2xl shadow-sm hover:shadow transition flex items-center gap-3.5 text-left group">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
+          <i data-lucide="file-plus" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wider block">Satış / Alacak</span>
+          <span class="text-base font-extrabold text-slate-900">Fatura Kes</span>
+        </div>
+      </button>
+
+      <!-- Tahsilat Alındı (Para Girişi) -->
+      <button onclick="openManualIslemModal('Tahsilat')" class="bg-white hover:bg-emerald-50/60 border-2 border-emerald-200 hover:border-emerald-400 p-4 rounded-2xl shadow-sm hover:shadow transition flex items-center gap-3.5 text-left group">
+        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition">
+          <i data-lucide="arrow-down-left" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider block">Para Girişi</span>
+          <span class="text-base font-extrabold text-slate-900">Tahsilat Aldık</span>
+        </div>
+      </button>
+
+      <!-- Fatura Geldi (Alış/Masraf) -->
+      <button onclick="openManualIslemModal('Alis_Faturasi')" class="bg-white hover:bg-amber-50/60 border-2 border-amber-200 hover:border-amber-400 p-4 rounded-2xl shadow-sm hover:shadow transition flex items-center gap-3.5 text-left group">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition">
+          <i data-lucide="receipt" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-amber-600 uppercase tracking-wider block">Alış / Gider</span>
+          <span class="text-base font-extrabold text-slate-900">Fatura Geldi</span>
+        </div>
+      </button>
+
+      <!-- Ödeme Yapıldı (Para Çıkışı) -->
+      <button onclick="openManualIslemModal('Odeme')" class="bg-white hover:bg-rose-50/60 border-2 border-rose-200 hover:border-rose-400 p-4 rounded-2xl shadow-sm hover:shadow transition flex items-center gap-3.5 text-left group">
+        <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition">
+          <i data-lucide="arrow-up-right" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-rose-600 uppercase tracking-wider block">Para Çıkışı</span>
+          <span class="text-base font-extrabold text-slate-900">Ödeme Yaptık</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- ================= 3. FİNANSAL GENEL BAKIŞ KARTLARI ================= -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-semibold uppercase tracking-wider">Müşterilerden Alacağımız</span>
+          <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
+        </div>
+        <div id="statAlacak" class="text-2xl font-black text-emerald-600">0,00 ₺</div>
+        <span class="text-xs text-slate-400">Bize borcu olan müşteriler</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-semibold uppercase tracking-wider">Tedarikçilere Borcumuz</span>
+          <i data-lucide="trending-down" class="w-4 h-4 text-rose-500"></i>
+        </div>
+        <div id="statBorc" class="text-2xl font-black text-rose-600">0,00 ₺</div>
+        <span class="text-xs text-slate-400">Dingil, sac, boya vb. tedarikçiler</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-semibold uppercase tracking-wider">Net Cari Durum</span>
+          <i data-lucide="scale" class="w-4 h-4 text-blue-500"></i>
+        </div>
+        <div id="statNet" class="text-2xl font-black text-blue-600">0,00 ₺</div>
+        <span class="text-xs text-slate-400">Alacaklar - Borçlar</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-semibold uppercase tracking-wider">Bu Ayki Satış Cirosu</span>
+          <i data-lucide="calendar" class="w-4 h-4 text-amber-500"></i>
+        </div>
+        <div id="statAySatis" class="text-2xl font-black text-slate-900">0,00 ₺</div>
+        <span class="text-xs text-slate-400">Bu ay kesilen satış faturaları</span>
+      </div>
+    </div>
+
+    <!-- ================= 4. CARİ HESAPLAR LİSTESİ ================= -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- Filtre ve Arama Çubuğu -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-100 text-blue-700 p-2 rounded-xl">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Cari Hesaplar & Bakiyeler</h2>
+            <p class="text-xs text-slate-500">Müşteri ve tedarikçilerinizin anlık borç-alacak durumu</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Arama Kutusu -->
+          <div class="relative min-w-[240px] flex-1 sm:flex-none">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input 
+              type="text" 
+              id="cariSearchInput" 
+              placeholder="Firma adı, yetkili, telefon ara..." 
+              class="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              oninput="filterCariler()"
+            />
+          </div>
+
+          <!-- Filtre Butonları -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-600">
+            <button onclick="setFilterTip('Tumu')" id="btnTipTumu" class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-blue-700 font-bold">Tümü</button>
+            <button onclick="setFilterTip('Musteri')" id="btnTipMusteri" class="px-3 py-1.5 rounded-lg hover:text-slate-900">Müşteriler</button>
+            <button onclick="setFilterTip('Tedarikci')" id="btnTipTedarikci" class="px-3 py-1.5 rounded-lg hover:text-slate-900">Tedarikçiler</button>
+          </div>
+
+          <!-- Yeni Cari Ekle Butonu -->
+          <button onclick="openNewCariModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Yeni Cari Kartı
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablo -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3.5">Firma / Cari Ünvanı</th>
+              <th class="px-4 py-3.5">Tip</th>
+              <th class="px-4 py-3.5">Yetkili / Telefon</th>
+              <th class="px-4 py-3.5 text-right">Güncel Bakiye</th>
+              <th class="px-4 py-3.5 text-center">Durum</th>
+              <th class="px-4 py-3.5 text-right">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="carilerTableBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="text-center py-8 text-slate-400">Cariler yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 5. SON HAREKETLER / FATURALAR AKIŞI ================= -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="history" class="w-5 h-5 text-slate-600"></i>
+          <h3 class="font-bold text-slate-900">Son İşlem & Fatura Geçmişi</h3>
+        </div>
+        <span class="text-xs text-slate-500">Son kaydedilen 15 işlem</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+            <tr>
+              <th class="px-3 py-2.5">Tarih</th>
+              <th class="px-3 py-2.5">Cari / Firma</th>
+              <th class="px-3 py-2.5">İşlem Türü</th>
+              <th class="px-3 py-2.5">Treyler / Detay</th>
+              <th class="px-3 py-2.5 text-right">Tutar</th>
+              <th class="px-3 py-2.5 text-center">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="sonIslemlerTableBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="text-center py-4 text-slate-400">Yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>Treyler & Dorse Cari Takip Sistemi • KolaySoft e-Fatura Entegrasyonu</p>
+      <p class="text-slate-400">Verileriniz yerel bilgisayarınızda güvenle saklanır.</p>
+    </div>
+  </footer>
+
+  <!-- ================= MODAL: CARİ HESAP EKSTRESİ & DETAYI ================= -->
+  <div id="ekstreModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="ekstreModalContent" class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Modal Başlık -->
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow">
+            <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 id="ekstreCariUnvan" class="text-lg font-bold text-slate-900">-</h3>
+            <p id="ekstreCariDetay" class="text-xs text-slate-500">-</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 no-print">
+          <!-- WhatsApp Butonu (Güvenli - Göndermeden Önce Önizler) -->
+          <button onclick="sendWhatsAppEkstre()" id="btnWhatsAppEkstre" title="WhatsApp Web'e hazır metin açar (göndermek için siz onaylarsınız)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            WhatsApp ile Bildir
+          </button>
+
+          <!-- Excel İndir -->
+          <a id="btnEkstreExcel" href="#" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            Excel İndir
+          </a>
+
+          <!-- Yazdır -->
+          <button onclick="window.print()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            Yazdır
+          </button>
+
+          <!-- Kapat -->
+          <button onclick="closeEkstreModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ekstre Tablosu -->
+      <div class="p-5 overflow-y-auto flex-1">
+        <div class="flex flex-wrap items-center justify-between mb-4 bg-slate-100 p-3 rounded-xl gap-3">
+          <div>
+            <span class="text-xs text-slate-500 font-semibold block">GÜNCEL NET BAKİYE</span>
+            <span id="ekstreNetBakiye" class="text-2xl font-black text-slate-900">0,00 ₺</span>
+          </div>
+          <div class="text-right">
+            <span id="ekstreBakiyeDurumText" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-200 text-slate-700">Durum: -</span>
+          </div>
+        </div>
+
+        <table class="w-full text-left text-xs sm:text-sm text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 uppercase font-bold text-xs sticky top-0">
+            <tr>
+              <th class="px-3 py-2.5">Tarih</th>
+              <th class="px-3 py-2.5">İşlem Türü</th>
+              <th class="px-3 py-2.5">Belge No</th>
+              <th class="px-3 py-2.5">Treyler / Şasi / Plaka</th>
+              <th class="px-3 py-2.5">Açıklama</th>
+              <th class="px-3 py-2.5 text-right">Borç (+)</th>
+              <th class="px-3 py-2.5 text-right">Alacak (-)</th>
+              <th class="px-3 py-2.5 text-right">Bakiye</th>
+              <th class="px-3 py-2.5 text-center no-print">Sil</th>
+            </tr>
+          </thead>
+          <tbody id="ekstreTableBody" class="divide-y divide-slate-100">
+            <!-- Satırlar JavaScript ile dolacak -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: YENİ İŞLEM (FATURA / TAHSİLAT / ÖDEME) ================= -->
+  <div id="manualIslemModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+      <div id="manualModalHeader" class="p-5 border-b border-slate-200 flex items-center justify-between text-white bg-blue-600">
+        <div class="flex items-center gap-2.5">
+          <i id="manualModalIcon" data-lucide="file-plus" class="w-6 h-6"></i>
+          <h3 id="manualModalTitle" class="text-lg font-bold">Yeni Fatura Kes</h3>
+        </div>
+        <button onclick="closeManualModal()" class="text-white/80 hover:text-white">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <form id="manualIslemForm" onsubmit="handleManualSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="formTur" value="Satis_Faturasi" />
+
+        <!-- Cari Seç / Yaz -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cari / Firma Adı *</label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="formCariInput" 
+              list="carilerDatalist" 
+              placeholder="Listeden seçin veya yeni firma adı yazın..." 
+              required
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold"
+            />
+            <datalist id="carilerDatalist"></datalist>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Mevcut firmayı seçebilir veya yeni bir firma adı yazabilirsiniz.</p>
+        </div>
+
+        <!-- Tutar & Tarih -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tutar (₺) *</label>
+            <input 
+              type="number" 
+              step="any" 
+              id="formTutar" 
+              placeholder="0.00" 
+              required
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-bold text-slate-900"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">İşlem Tarihi</label>
+            <input 
+              type="date" 
+              id="formTarih" 
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Treyler / Dorse Sektör Bilgileri (Açılır Detay) -->
+        <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <i data-lucide="truck" class="w-3.5 h-3.5 text-blue-600"></i>
+              Treyler & Araç Detayları (İsteğe Bağlı)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-0.5">Dorse Tipi</label>
+              <select id="formDorseTipi" class="w-full p-2 text-xs rounded-lg border border-slate-300 bg-white">
+                <option value="Diger">Diğer / Genel</option>
+                <option value="Damper">Damper Treyler</option>
+                <option value="Lowbed">Lowbed (Ağır Vasıta)</option>
+                <option value="Tenteli">Tenteli Treyler</option>
+                <option value="Konteyner Tasiyici">Konteyner Taşıyıcı</option>
+                <option value="Silobas">Silobas</option>
+                <option value="Kapakli">Kapaklı / Açık Kasa</option>
+                <option value="Frigo">Frigorifik (Frigo)</option>
+                <option value="Yedek Parca/Servis">Yedek Parça / Servis</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-0.5">Şasi No / VIN</label>
+              <input type="text" id="formSasiNo" placeholder="TR..." class="w-full p-2 text-xs rounded-lg border border-slate-300 bg-white" />
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-0.5">Plaka</label>
+              <input type="text" id="formPlaka" placeholder="34 ABC 123" class="w-full p-2 text-xs rounded-lg border border-slate-300 bg-white uppercase" />
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-0.5">Fatura / Belge No</label>
+              <input type="text" id="formBelgeNo" placeholder="FTR2026..." class="w-full p-2 text-xs rounded-lg border border-slate-300 bg-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Açıklama -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Açıklama / Not</label>
+          <input 
+            type="text" 
+            id="formAciklama" 
+            placeholder="İşlemle ilgili kısa not..." 
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+          />
+        </div>
+
+        <!-- Butonlar -->
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeManualModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+            Vazgeç
+          </button>
+          <button type="submit" id="formSubmitBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow transition">
+            Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: KOLAYSOFT EXCEL İÇE AKTARMA ================= -->
+  <div id="kolaysoftModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-amber-500 text-white">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+          <h3 class="text-lg font-bold">KolaySoft e-Fatura Excel İçe Aktarma</h3>
+        </div>
+        <button onclick="closeKolaysoftModal()" class="text-white/80 hover:text-white">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-900">
+          <p class="font-bold mb-1">📌 KolaySoft'tan Dosya Nasıl Alınır?</p>
+          <p>KolaySoft portalınızda <strong>Giden Faturalar</strong> veya <strong>Gelen Faturalar</strong> menüsüne girip <em>"Excel'e Aktar"</em> dediğinizde inen dosyayı doğrudan buraya yükleyebilirsiniz.</p>
+        </div>
+
+        <!-- Sürükle Bırak Kutusu -->
+        <div 
+          id="dropArea" 
+          onclick="document.getElementById('excelFileInput').click()"
+          class="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 hover:bg-amber-50/50 p-8 rounded-2xl text-center cursor-pointer transition flex flex-col items-center justify-center"
+        >
+          <i data-lucide="upload-cloud" class="w-12 h-12 text-amber-500 mb-2"></i>
+          <span class="text-sm font-bold text-slate-700">KolaySoft Excel dosyasını seçin veya sürükleyin</span>
+          <span class="text-xs text-slate-400 mt-1">(.xlsx veya .csv dosyaları desteklenir)</span>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)" />
+        </div>
+
+        <div id="selectedFileInfo" class="hidden bg-slate-100 p-3 rounded-xl flex items-center justify-between text-sm">
+          <div class="flex items-center gap-2 truncate">
+            <i data-lucide="file" class="w-4 h-4 text-slate-600"></i>
+            <span id="selectedFileName" class="font-semibold text-slate-800 truncate">-</span>
+          </div>
+          <span id="selectedFileSize" class="text-xs text-slate-500 font-mono">-</span>
+        </div>
+
+        <div id="importResultBox" class="hidden p-3 rounded-xl text-sm"></div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button onclick="closeKolaysoftModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+            Kapat
+          </button>
+          <button id="btnStartImport" onclick="uploadKolaysoftFile()" disabled class="bg-amber-500 disabled:opacity-50 hover:bg-amber-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow transition flex items-center gap-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            Faturaları Sisteme Aktar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: YENİ CARİ KARTI OLUŞTURMA ================= -->
+  <div id="newCariModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-blue-600 text-white">
+        <div class="flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-6 h-6"></i>
+          <h3 id="cariModalTitle" class="text-lg font-bold">Yeni Cari Kartı Aç</h3>
+        </div>
+        <button onclick="closeNewCariModal()" class="text-white/80 hover:text-white">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <form id="cariForm" onsubmit="handleCariSubmit(event)" class="p-6 space-y-3.5">
+        <input type="hidden" id="editCariId" value="" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cari / Firma Ünvanı *</label>
+          <input type="text" id="cariUnvan" required placeholder="Örn: Yılmaz Treyler San. Tic. Ltd. Şti." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cari Tipi</label>
+            <select id="cariTip" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white font-medium">
+              <option value="Musteri">Müşteri (Alıcı)</option>
+              <option value="Tedarikci">Tedarikçi (Satıcı)</option>
+              <option value="Diger">Diğer</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Yetkili Kişi</label>
+            <input type="text" id="cariYetkili" placeholder="Ad Soyad" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Telefon</label>
+            <input type="text" id="cariTelefon" placeholder="0532..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vergi No / TCKN</label>
+            <input type="text" id="cariVergiNo" placeholder="10 haneli VKN" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notlar / Adres</label>
+          <input type="text" id="cariNotlar" placeholder="Cari ile ilgili notlar..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeNewCariModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+            Vazgeç
+          </button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow transition">
+            Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT MOTORU -->
+  <script>
+    // Global State
+    let carilerListesi = [];
+    let currentFilterTip = 'Tumu';
+    let currentParsedData = null;
+    let currentActiveEkstreCari = null;
+    let selectedFileForImport = null;
+
+    // Sayfa Yüklendiğinde
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadCariler();
+      loadIstatistikler();
+      loadSonIslemler();
+      setTodayDate();
+    });
+
+    function setTodayDate() {
+      const today = new Date().toISOString().split('T')[0];
+      const formTarih = document.getElementById('formTarih');
+      if (formTarih) formTarih.value = today;
+    }
+
+    // Formatlama Yardımcıları
+    function formatPara(val) {
+      if (val === null || val === undefined) return '0,00 ₺';
+      const n = Number(val);
+      return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+    }
+
+    // ----------------- İSTATİSTİKLER VE CARİ LİSTESİ -----------------
+    async function loadIstatistikler() {
+      try {
+        const res = await fetch('/api/istatistikler');
+        const data = await res.json();
+        document.getElementById('statAlacak').innerText = formatPara(data.toplam_alacak);
+        document.getElementById('statBorc').innerText = formatPara(data.toplam_borc);
+        
+        const netEl = document.getElementById('statNet');
+        netEl.innerText = formatPara(data.net_durum);
+        netEl.className = data.net_durum >= 0 ? "text-2xl font-black text-blue-600" : "text-2xl font-black text-rose-600";
+        
+        document.getElementById('statAySatis').innerText = formatPara(data.bu_ay_satis);
+      } catch (e) {
+        console.error("İstatistik yüklenemedi", e);
+      }
+    }
+
+    async function loadCariler() {
+      try {
+        const res = await fetch('/api/cariler');
+        carilerListesi = await res.json();
+        renderCarilerTable(carilerListesi);
+        populateDatalist(carilerListesi);
+      } catch (e) {
+        console.error("Cariler yüklenemedi", e);
+      }
+    }
+
+    function populateDatalist(cariler) {
+      const dl = document.getElementById('carilerDatalist');
+      if (!dl) return;
+      dl.innerHTML = '';
+      cariler.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.unvan;
+        dl.appendChild(opt);
+      });
+    }
+
+    function setFilterTip(tip) {
+      currentFilterTip = tip;
+      ['Tumu', 'Musteri', 'Tedarikci'].forEach(t => {
+        const btn = document.getElementById('btnTip' + t);
+        if (t === tip) {
+          btn.className = "px-3 py-1.5 rounded-lg bg-white shadow-sm text-blue-700 font-bold";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg hover:text-slate-900";
+        }
+      });
+      filterCariler();
+    }
+
+    function filterCariler() {
+      const q = document.getElementById('cariSearchInput').value.toLowerCase().trim();
+      const filtered = carilerListesi.filter(c => {
+        const matchesTip = (currentFilterTip === 'Tumu') || (c.tip === currentFilterTip);
+        const matchesQuery = !q || 
+          c.unvan.toLowerCase().includes(q) || 
+          (c.yetkili && c.yetkili.toLowerCase().includes(q)) ||
+          (c.telefon && c.telefon.includes(q)) ||
+          (c.vergi_no && c.vergi_no.includes(q));
+        return matchesTip && matchesQuery;
+      });
+      renderCarilerTable(filtered);
+    }
+
+    function renderCarilerTable(cariler) {
+      const tbody = document.getElementById('carilerTableBody');
+      if (!cariler || cariler.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">Kayıtlı cari bulunamadı.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = cariler.map(c => {
+        const bakiye = Number(c.bakiye || 0);
+        let bakiyeClass = "text-slate-500 font-bold";
+        let durumBadge = `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">Bakiye 0</span>`;
+        
+        if (bakiye > 0.01) {
+          bakiyeClass = "text-emerald-600 font-black";
+          durumBadge = `<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-semibold">Alacağımız Var</span>`;
+        } else if (bakiye < -0.01) {
+          bakiyeClass = "text-rose-600 font-black";
+          durumBadge = `<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md font-semibold">Borcumuz Var</span>`;
+        }
+
+        const tipBadge = c.tip === 'Tedarikci' 
+          ? `<span class="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">Tedarikçi</span>`
+          : `<span class="text-[11px] bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-md">Müşteri</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition group">
+            <td class="px-4 py-3.5 font-bold text-slate-900">
+              ${c.unvan}
+              ${c.notlar ? `<span class="block text-[11px] text-slate-400 font-normal truncate max-w-xs">${c.notlar}</span>` : ''}
+            </td>
+            <td class="px-4 py-3.5">${tipBadge}</td>
+            <td class="px-4 py-3.5">
+              <span class="block font-medium text-slate-800">${c.yetkili || '-'}</span>
+              <span class="block text-xs text-slate-400">${c.telefon || '-'}</span>
+            </td>
+            <td class="px-4 py-3.5 text-right text-base ${bakiyeClass}">
+              ${formatPara(bakiye)}
+            </td>
+            <td class="px-4 py-3.5 text-center">${durumBadge}</td>
+            <td class="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+              <button onclick="openEkstreModal(${c.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Ekstre
+              </button>
+              <button onclick="openWhatsAppForCari(${c.id})" title="WhatsApp Web'e hazır metin açar (göndermek için siz onaylarsınız)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="editCariModal(${c.id})" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg transition inline-block">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // ----------------- SON İŞLEMLER AKIŞI -----------------
+    async function loadSonIslemler() {
+      try {
+        const res = await fetch('/api/islemler?limit=15');
+        const islemler = await res.json();
+        const tbody = document.getElementById('sonIslemlerTableBody');
+        
+        if (!islemler || islemler.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400">Henüz bir işlem kaydedilmedi.</td></tr>`;
+          return;
+        }
+
+        const turEtiketleri = {
+          "Satis_Faturasi": `<span class="badge-satis px-2 py-0.5 rounded text-xs font-bold">Satış Faturası</span>`,
+          "Tahsilat": `<span class="badge-tahsilat px-2 py-0.5 rounded text-xs font-bold">Tahsilat (+)</span>`,
+          "Alis_Faturasi": `<span class="badge-alis px-2 py-0.5 rounded text-xs font-bold">Alış Faturası</span>`,
+          "Odeme": `<span class="badge-odeme px-2 py-0.5 rounded text-xs font-bold">Ödeme (-)</span>`
+        };
+
+        tbody.innerHTML = islemler.map(i => {
+          const treylerDetay = [i.dorse_tipi !== 'Diger' ? i.dorse_tipi : '', i.plaka, i.sasi_no].filter(Boolean).join(' - ') || i.aciklama || '-';
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-3 py-2.5 text-xs text-slate-500">${i.tarih}</td>
+              <td class="px-3 py-2.5 font-bold text-slate-900">${i.cari_unvan}</td>
+              <td class="px-3 py-2.5">${turEtiketleri[i.tur] || i.tur}</td>
+              <td class="px-3 py-2.5 text-xs text-slate-600 truncate max-w-xs">${treylerDetay}</td>
+              <td class="px-3 py-2.5 text-right font-extrabold text-slate-900">${formatPara(i.tutar)}</td>
+              <td class="px-3 py-2.5 text-center">
+                <button onclick="silIslem(${i.id})" title="Bu işlemi sil ve bakiyeyi düzelt (Geri Al)" class="text-slate-400 hover:text-rose-600 p-1">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        lucide.createIcons();
+      } catch (e) {
+        console.error("Son işlemler alınamadı", e);
+      }
+    }
+
+    // ----------------- 1. AKILLI ASİSTAN MOTORU -----------------
+    async function parseSmartText() {
+      const input = document.getElementById('smartInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      try {
+        const res = await fetch('/api/smart-parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (!data.basarili) {
+          alert(data.mesaj);
+          return;
+        }
+
+        currentParsedData = data;
+        
+        // Kartı doldur
+        document.getElementById('smartPreviewFirm').innerText = data.cari_unvan;
+        document.getElementById('smartPreviewAmount').innerText = formatPara(data.tutar);
+        document.getElementById('smartPreviewType').innerText = data.tur_aciklamasi;
+        document.getElementById('smartPreviewDesc').innerText = 
+          `Dorse: ${data.dorse_tipi || 'Genel'} | Plaka: ${data.plaka || '-'} | Şasi: ${data.sasi_no || '-'}`;
+        document.getElementById('smartCariStatus').innerText = data.cari_mevcut ? "Kayıtlı Cari" : "Yeni Oluşturulacak";
+
+        const card = document.getElementById('smartPreviewCard');
+        card.classList.remove('hidden');
+        lucide.createIcons();
+      } catch (e) {
+        alert("Ayrıştırma sırasında bir hata oluştu.");
+      }
+    }
+
+    function clearSmartInput() {
+      document.getElementById('smartInput').value = '';
+      cancelSmartPreview();
+    }
+
+    function cancelSmartPreview() {
+      document.getElementById('smartPreviewCard').classList.add('hidden');
+      currentParsedData = null;
+    }
+
+    async function confirmSmartSave() {
+      if (!currentParsedData) return;
+      const btn = document.getElementById('smartSaveBtn');
+      btn.disabled = true;
+      btn.innerText = "Kaydediliyor...";
+
+      try {
+        const res = await fetch('/api/islemler', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentParsedData)
+        });
+        const resp = await res.json();
+        
+        // Başarılı
+        clearSmartInput();
+        await loadCariler();
+        await loadIstatistikler();
+        await loadSonIslemler();
+      } catch (e) {
+        alert("Kayıt sırasında bir hata oluştu.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check-circle-2" class="w-5 h-5"></i> ✅ Tek Tıkla Onayla ve Kaydet`;
+        lucide.createIcons();
+      }
+    }
+
+    function openEditFromSmart() {
+      if (!currentParsedData) return;
+      openManualIslemModal(currentParsedData.tur);
+      document.getElementById('formCariInput').value = currentParsedData.cari_unvan;
+      document.getElementById('formTutar').value = currentParsedData.tutar;
+      document.getElementById('formDorseTipi').value = currentParsedData.dorse_tipi || 'Diger';
+      document.getElementById('formPlaka').value = currentParsedData.plaka || '';
+      document.getElementById('formSasiNo').value = currentParsedData.sasi_no || '';
+      document.getElementById('formAciklama').value = currentParsedData.aciklama || '';
+      cancelSmartPreview();
+    }
+
+    // ----------------- 2. HIZLI İŞLEM MODALI (FATURA / TAHSİLAT) -----------------
+    function openManualIslemModal(tur) {
+      document.getElementById('formTur').value = tur;
+      const modal = document.getElementById('manualIslemModal');
+      const header = document.getElementById('manualModalHeader');
+      const title = document.getElementById('manualModalTitle');
+      const icon = document.getElementById('manualModalIcon');
+
+      const config = {
+        'Satis_Faturasi': { title: 'Yeni Satış Faturası Kes (Alacak)', bg: 'bg-blue-600', icon: 'file-plus' },
+        'Tahsilat': { title: 'Tahsilat Alındı (Para Girişi)', bg: 'bg-emerald-600', icon: 'arrow-down-left' },
+        'Alis_Faturasi': { title: 'Yeni Alış Faturası Geldi (Gider)', bg: 'bg-amber-600', icon: 'receipt' },
+        'Odeme': { title: 'Ödeme Yapıldı (Para Çıkışı)', bg: 'bg-rose-600', icon: 'arrow-up-right' }
+      }[tur] || { title: 'İşlem Ekle', bg: 'bg-blue-600', icon: 'file-plus' };
+
+      header.className = `p-5 border-b border-slate-200 flex items-center justify-between text-white ${config.bg}`;
+      title.innerText = config.title;
+      icon.setAttribute('data-lucide', config.icon);
+
+      setTodayDate();
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+      document.getElementById('formCariInput').focus();
+    }
+
+    function closeManualModal() {
+      document.getElementById('manualIslemModal').classList.add('hidden');
+      document.getElementById('manualIslemForm').reset();
+    }
+
+    async function handleManualSubmit(e) {
+      e.preventDefault();
+      const tur = document.getElementById('formTur').value;
+      const cariUnvan = document.getElementById('formCariInput').value.trim();
+      const tutar = parseFloat(document.getElementById('formTutar').value);
+      const tarih = document.getElementById('formTarih').value;
+      const dorseTipi = document.getElementById('formDorseTipi').value;
+      const sasiNo = document.getElementById('formSasiNo').value.trim();
+      const plaka = document.getElementById('formPlaka').value.trim();
+      const belgeNo = document.getElementById('formBelgeNo').value.trim();
+      const aciklama = document.getElementById('formAciklama').value.trim();
+
+      const payload = {
+        cari_unvan: cariUnvan,
+        tur: tur,
+        tutar: tutar,
+        tarih: tarih,
+        vade_tarihi: tarih,
+        dorse_tipi: dorseTipi,
+        sasi_no: sasiNo,
+        plaka: plaka,
+        belge_no: belgeNo,
+        aciklama: aciklama
+      };
+
+      try {
+        const res = await fetch('/api/islemler', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        closeManualModal();
+        await loadCariler();
+        await loadIstatistikler();
+        await loadSonIslemler();
+      } catch (err) {
+        alert("Kaydetme sırasında bir hata oluştu.");
+      }
+    }
+
+    async function silIslem(islemId) {
+      if (!confirm("Bu işlemi silmek istediğinize emin misiniz? Bakiye otomatik olarak yeniden hesaplanacaktır.")) return;
+      try {
+        await fetch(`/api/islemler/${islemId}`, { method: 'DELETE' });
+        await loadCariler();
+        await loadIstatistikler();
+        await loadSonIslemler();
+        if (currentActiveEkstreCari) {
+          openEkstreModal(currentActiveEkstreCari.id);
+        }
+      } catch (e) {
+        alert("Silme işlemi başarısız.");
+      }
+    }
+
+    // ----------------- 3. CARİ EKSTRESİ VE WHATSAPP -----------------
+    async function openEkstreModal(cariId) {
+      try {
+        const res = await fetch(`/api/cariler/${cariId}/ekstre`);
+        const data = await res.json();
+        currentActiveEkstreCari = data.cari;
+
+        document.getElementById('ekstreCariUnvan').innerText = data.cari.unvan;
+        document.getElementById('ekstreCariDetay').innerText = 
+          `Yetkili: ${data.cari.yetkili || '-'} | Tel: ${data.cari.telefon || '-'} | Vergi No: ${data.cari.vergi_no || '-'}`;
+        document.getElementById('btnEkstreExcel').href = `/api/export/ekstre/${cariId}`;
+
+        const netBakiye = Number(data.net_bakiye || 0);
+        const netEl = document.getElementById('ekstreNetBakiye');
+        const durumEl = document.getElementById('ekstreBakiyeDurumText');
+        netEl.innerText = formatPara(netBakiye);
+
+        if (netBakiye > 0.01) {
+          netEl.className = "text-2xl font-black text-emerald-600";
+          durumEl.innerText = "Alacağımız Var";
+          durumEl.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800";
+        } else if (netBakiye < -0.01) {
+          netEl.className = "text-2xl font-black text-rose-600";
+          durumEl.innerText = "Borcumuz Var";
+          durumEl.className = "text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-800";
+        } else {
+          netEl.className = "text-2xl font-black text-slate-700";
+          durumEl.innerText = "Hesap Kapalı / Sıfır";
+          durumEl.className = "text-xs font-bold px-3 py-1 rounded-full bg-slate-200 text-slate-700";
+        }
+
+        const tbody = document.getElementById('ekstreTableBody');
+        if (!data.islemler || data.islemler.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400">Bu cariye ait henüz işlem hareketi yok.</td></tr>`;
+        } else {
+          const turIsimleri = {
+            "Satis_Faturasi": "Satış Faturası",
+            "Tahsilat": "Tahsilat",
+            "Alis_Faturasi": "Alış Faturası",
+            "Odeme": "Ödeme"
+          };
+
+          tbody.innerHTML = data.islemler.map(i => {
+            const tur = i.tur;
+            const tutar = Number(i.tutar || 0);
+            let borcTutar = (tur === "Satis_Faturasi" || tur === "Odeme") ? formatPara(tutar) : "-";
+            let alacakTutar = (tur === "Tahsilat" || tur === "Alis_Faturasi") ? formatPara(tutar) : "-";
+            const sasiPlaka = [i.dorse_tipi !== 'Diger' ? i.dorse_tipi : '', i.plaka, i.sasi_no].filter(Boolean).join(' ') || '-';
+
+            return `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="px-3 py-2 text-slate-500 font-mono text-xs">${i.tarih}</td>
+                <td class="px-3 py-2 font-bold text-slate-800">${turIsimleri[tur] || tur}</td>
+                <td class="px-3 py-2 text-slate-500 font-mono text-xs">${i.belge_no || '-'}</td>
+                <td class="px-3 py-2 text-slate-700">${sasiPlaka}</td>
+                <td class="px-3 py-2 text-slate-600 truncate max-w-xs">${i.aciklama || '-'}</td>
+                <td class="px-3 py-2 text-right font-semibold text-slate-900">${borcTutar}</td>
+                <td class="px-3 py-2 text-right font-semibold text-slate-900">${alacakTutar}</td>
+                <td class="px-3 py-2 text-right font-black ${i.yuruyen_bakiye >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${formatPara(i.yuruyen_bakiye)}</td>
+                <td class="px-3 py-2 text-center no-print">
+                  <button onclick="silIslem(${i.id})" title="İşlemi Sil" class="text-slate-400 hover:text-rose-600 p-1">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('ekstreModal').classList.remove('hidden');
+        lucide.createIcons();
+      } catch (e) {
+        alert("Ekstre bilgisi alınamadı.");
+      }
+    }
+
+    function closeEkstreModal() {
+      document.getElementById('ekstreModal').classList.add('hidden');
+      currentActiveEkstreCari = null;
+    }
+
+    function openWhatsAppForCari(cariId) {
+      const cari = carilerListesi.find(c => c.id === cariId);
+      if (!cari) return;
+      currentActiveEkstreCari = cari;
+      sendWhatsAppEkstre();
+    }
+
+    async function sendWhatsAppEkstre() {
+      if (!currentActiveEkstreCari) return;
+
+      let tel = (currentActiveEkstreCari.telefon || '').replace(/[^0-9]/g, '');
+
+      // Eğer telefon kayıtlı değilse personele sor ve veritabanına kaydet
+      if (!tel || tel.length < 10) {
+        const yeniTel = prompt(`"${currentActiveEkstreCari.unvan}" firmasının kayıtlı telefon numarası bulunamadı.\n\nWhatsApp mesajı göndermek için telefon numarasını girin (Örn: 0532 123 45 67):`, "");
+        if (yeniTel && yeniTel.trim()) {
+          const temizTel = yeniTel.replace(/[^0-9]/g, '');
+          if (temizTel.length >= 10) {
+            tel = temizTel;
+            currentActiveEkstreCari.telefon = yeniTel.trim();
+            // Veritabanında güncelle
+            try {
+              await fetch(`/api/cariler/${currentActiveEkstreCari.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  unvan: currentActiveEkstreCari.unvan,
+                  tip: currentActiveEkstreCari.tip,
+                  telefon: yeniTel.trim(),
+                  yetkili: currentActiveEkstreCari.yetkili || '',
+                  vergi_no: currentActiveEkstreCari.vergi_no || '',
+                  notlar: currentActiveEkstreCari.notlar || ''
+                })
+              });
+              await loadCariler();
+            } catch (err) {
+              console.error("Telefon kaydedilemedi", err);
+            }
+          }
+        }
+      }
+
+      const bakiye = Number(currentActiveEkstreCari.bakiye || 0);
+      const durumText = bakiye > 0 ? "Borç (Alacağımız)" : (bakiye < 0 ? "Alacak (Bizim Borcumuz)" : "Kapalı");
+      const bakiyeStr = formatPara(Math.abs(bakiye));
+
+      const mesaj = `Sayın *${currentActiveEkstreCari.unvan}* yetkilisi,\n\nFirmamızdaki güncel cari hesap bakiyeniz: *${bakiyeStr}* (${durumText}) olarak görünmektedir.\n\nDetaylı hesap ekstresi veya mutabakat için bizimle iletişime geçebilirsiniz.\nHayırlı işler dileriz.\n*Treyler & Dorse Sanayi*`;
+
+      if (tel.startsWith('0')) tel = '90' + tel.substring(1);
+      if (tel.length === 10) tel = '90' + tel;
+
+      const url = `https://wa.me/${tel}?text=${encodeURIComponent(mesaj)}`;
+      window.open(url, '_blank');
+    }
+
+    // ----------------- 4. KOLAYSOFT EXCEL İÇE AKTARMA -----------------
+    function openKolaysoftModal() {
+      selectedFileForImport = null;
+      document.getElementById('selectedFileInfo').classList.add('hidden');
+      document.getElementById('importResultBox').classList.add('hidden');
+      document.getElementById('btnStartImport').disabled = true;
+      document.getElementById('kolaysoftModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeKolaysoftModal() {
+      document.getElementById('kolaysoftModal').classList.add('hidden');
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedFileForImport = file;
+
+      document.getElementById('selectedFileName').innerText = file.name;
+      document.getElementById('selectedFileSize').innerText = (file.size / 1024).toFixed(1) + ' KB';
+      document.getElementById('selectedFileInfo').classList.remove('hidden');
+      document.getElementById('btnStartImport').disabled = false;
+      lucide.createIcons();
+    }
+
+    async function uploadKolaysoftFile() {
+      if (!selectedFileForImport) return;
+      const btn = document.getElementById('btnStartImport');
+      btn.disabled = true;
+      btn.innerText = "Aktarılıyor...";
+
+      const formData = new FormData();
+      formData.append('dosya', selectedFileForImport);
+
+      try {
+        const res = await fetch('/api/import/kolaysoft', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await res.json();
+        const box = document.getElementById('importResultBox');
+        box.classList.remove('hidden');
+
+        if (result.basarili) {
+          box.className = "p-3.5 rounded-xl text-xs bg-emerald-50 text-emerald-900 border border-emerald-200 font-medium";
+          box.innerHTML = `<strong>✅ Harika!</strong> ${result.mesaj}`;
+          await loadCariler();
+          await loadIstatistikler();
+          await loadSonIslemler();
+        } else {
+          box.className = "p-3.5 rounded-xl text-xs bg-rose-50 text-rose-900 border border-rose-200 font-medium";
+          box.innerHTML = `<strong>⚠️ Aktarım Yapılamadı:</strong> ${result.mesaj}`;
+        }
+      } catch (e) {
+        alert("Dosya yükleme sırasında bir hata oluştu.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Faturaları Sisteme Aktar`;
+        lucide.createIcons();
+      }
+    }
+
+    // Sürükle Bırak Desteği
+    const dropArea = document.getElementById('dropArea');
+    if (dropArea) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => { e.preventDefault(); dropArea.classList.add('border-amber-500', 'bg-amber-50'); }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => { e.preventDefault(); dropArea.classList.remove('border-amber-500', 'bg-amber-50'); }, false);
+      });
+      dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const file = dt.files[0];
+        if (file) {
+          handleFileSelect({ target: { files: [file] } });
+        }
+      });
+    }
+
+    // ----------------- 5. CARİ KARTI EKLEME / DÜZENLEME -----------------
+    function openNewCariModal() {
+      document.getElementById('cariForm').reset();
+      document.getElementById('editCariId').value = '';
+      document.getElementById('cariModalTitle').innerText = "Yeni Cari Kartı Aç";
+      document.getElementById('newCariModal').classList.remove('hidden');
+    }
+
+    function editCariModal(cariId) {
+      const c = carilerListesi.find(item => item.id === cariId);
+      if (!c) return;
+      document.getElementById('editCariId').value = c.id;
+      document.getElementById('cariUnvan').value = c.unvan;
+      document.getElementById('cariTip').value = c.tip;
+      document.getElementById('cariYetkili').value = c.yetkili || '';
+      document.getElementById('cariTelefon').value = c.telefon || '';
+      document.getElementById('cariVergiNo').value = c.vergi_no || '';
+      document.getElementById('cariNotlar').value = c.notlar || '';
+      document.getElementById('cariModalTitle').innerText = "Cari Bilgilerini Düzenle";
+      document.getElementById('newCariModal').classList.remove('hidden');
+    }
+
+    function closeNewCariModal() {
+      document.getElementById('newCariModal').classList.add('hidden');
+    }
+
+    async function handleCariSubmit(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editCariId').value;
+      const payload = {
+        unvan: document.getElementById('cariUnvan').value.trim(),
+        tip: document.getElementById('cariTip').value,
+        yetkili: document.getElementById('cariYetkili').value.trim(),
+        telefon: document.getElementById('cariTelefon').value.trim(),
+        vergi_no: document.getElementById('cariVergiNo').value.trim(),
+        notlar: document.getElementById('cariNotlar').value.trim()
+      };
+
+      try {
+        const url = editId ? `/api/cariler/${editId}` : '/api/cariler';
+        const method = editId ? 'PUT' : 'POST';
+        await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        closeNewCariModal();
+        await loadCariler();
+      } catch (err) {
+        alert("Cari kaydedilemedi.");
+      }
+    }
+  </script>
+</body>
+</html>
